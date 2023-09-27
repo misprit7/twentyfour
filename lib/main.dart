@@ -11,12 +11,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'twentyfour',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Twenty Four Game'),
     );
   }
 }
@@ -68,10 +68,47 @@ class ButtonSquare extends StatefulWidget {
 
 class _ButtonSquareState extends State<ButtonSquare> {
   bool isButtonVisible = true; // Initially, buttons are visible
+  List<int> numbers = [1, 2, 3, 4];
+  int numSelect = -1;
+  int opSelect = -1;
 
-  void toggleButtonVisibility() {
+  void numberPress(int i) {
+    if(numSelect != -1 || opSelect == -1){
+      if(numbers[i] != -999){
+        setState(() {
+          numSelect = i;
+        });
+      }
+      return;
+    }
     setState(() {
-      isButtonVisible = !isButtonVisible; // Toggle button visibility
+      if(opSelect == 0){
+        numbers[i] == numbers[numSelect] + numbers[i];
+      } else if(opSelect == 1){
+        numbers[i] == numbers[numSelect] - numbers[i];
+      } else if(opSelect == 2){
+        numbers[i] == numbers[numSelect] * numbers[i];
+      } else if(opSelect == 3){
+        numbers[i] == numbers[numSelect] / numbers[i];
+      }
+      numbers[numSelect] = -999;
+      numSelect = i;
+    });
+  }
+
+  void opPress(int i) {
+    if(0 <= i && i <= 3){
+      setState((){ opSelect = i; });
+      return;
+    }
+    setState((){
+      int reduced = numbers.reduce((a, b){ return i == 4 ? a+b : a*(b == -999 ? 1 : b); });
+      for(int i = 0; i < 4; ++i){numbers[i] = -999;}
+      if(numSelect != -1){
+        numbers[numSelect] = reduced;
+      } else {
+        numbers[0] = reduced;
+      }
     });
   }
 
@@ -82,50 +119,51 @@ class _ButtonSquareState extends State<ButtonSquare> {
         ? screenSize.width / 2-32
         : screenSize.height / 2-32;
 
+    Row buildButtonRow(List<(String, int)> buttonLabels, double buttonSize) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: buttonLabels.map((label) {
+          return Row(
+            children: [
+              Opacity(
+                opacity: numbers[label.$2] == -999 ? 0.0 : 1.0,
+                child: CustomButton(
+                  label.$1,
+                  buttonSize,
+                  numSelect == label.$2,
+                  onPressed: (){numberPress(label.$2);},
+                ),
+              ),
+              SizedBox(width: 16.0), // Add horizontal spacing between buttons
+            ],
+          );
+        }).toList(),
+      );
+    }
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-Row(
+        Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Opacity(
-              opacity: isButtonVisible ? 1.0 : 0.0, // Control opacity based on state
-              child: CustomButton('1', buttonSize, onPressed: toggleButtonVisibility,),
-            ),
-            SizedBox(width: 16.0), // Add horizontal margin
-            Opacity(
-              opacity: isButtonVisible ? 1.0 : 0.0, // Control opacity based on state
-              child: CustomButton('2', buttonSize),
-            ),
+            buildButtonRow([(numbers[0].toString(), 0), (numbers[1].toString(), 1)], buttonSize),
+            SizedBox(height: 16.0), // Add horizontal spacing between buttons
+            buildButtonRow([(numbers[2].toString(), 2), (numbers[3].toString(), 3)], buttonSize),
+            SizedBox(height: 16.0), // Add horizontal spacing between buttons
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ButtonGroup([('+', 0), ('-', 1), ('×', 2), ('÷', 3)], screenSize.width / 4-16, 8, opPress),
           ],
         ),
         SizedBox(height: 16.0), // Add vertical margin
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Opacity(
-              opacity: isButtonVisible ? 1.0 : 0.0, // Control opacity based on state
-              child: CustomButton('3', buttonSize),
-            ),
-            SizedBox(width: 16.0), // Add horizontal margin
-            Opacity(
-              opacity: isButtonVisible ? 1.0 : 0.0, // Control opacity based on state
-              child: CustomButton('4', buttonSize),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.0), // Add vertical margin
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ButtonGroup(['+', '-', '×', '÷'], screenSize.width / 4-16, 8),
-          ],
-        ),
-        SizedBox(height: 16.0), // Add vertical margin
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            ButtonGroup(['++', '××'], screenSize.width / 4-16, 8),
+            ButtonGroup([('++', 4), ('××', 5)], screenSize.width / 4-16, 8, opPress),
           ],
         ),
       ],
@@ -133,30 +171,48 @@ Row(
   }
 }
 
-class CustomButton extends StatelessWidget {
-  final String number;
+class CustomButton extends StatefulWidget {
+  final String label;
   final double size;
-  final VoidCallback? onPressed; // Callback function
+  final bool isActive; // Added isActive property
+  final VoidCallback? onPressed;
 
-  CustomButton(this.number, this.size, {this.onPressed});
+  CustomButton(
+    this.label,
+    this.size,
+    this.isActive,
+    {this.onPressed}
+  );
 
   @override
+  _CustomButtonState createState() => _CustomButtonState();
+}
+
+class _CustomButtonState extends State<CustomButton> {
+  @override
   Widget build(BuildContext context) {
+    final primaryColor = widget.isActive ? Colors.blue : Theme.of(context).colorScheme.surfaceVariant;
+    final textColor = widget.isActive ? Colors.white : Colors.black;
+
     return Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       child: ElevatedButton(
-        onPressed: onPressed, // Assign the callback function to the button's onPressed
+        onPressed: widget.onPressed,
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.all(0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(0),
           ),
+          primary: primaryColor,
         ),
         child: Center(
           child: Text(
-            number.toString(),
-            style: TextStyle(fontSize: 24.0),
+            widget.label,
+            style: TextStyle(
+              fontSize: 24.0,
+              color: textColor,
+            ),
           ),
         ),
       ),
@@ -165,25 +221,27 @@ class CustomButton extends StatelessWidget {
 }
 
 class ButtonGroup extends StatelessWidget {
-  final List<String> numbers;
+  final List<(String, int)> labels;
   final double size;
   final double spacing; // Define spacing between buttons
+  final void Function(int) onPressed;
 
-  ButtonGroup(this.numbers, this.size, this.spacing);
+  ButtonGroup(this.labels, this.size, this.spacing, this.onPressed);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size * numbers.length.toDouble() + spacing * (numbers.length - 1), // Calculate total width
+      width: size * labels.length.toDouble() + spacing * (labels.length - 1), // Calculate total width
       height: size, // Set a fixed height
       child: Row(
-        children: numbers.asMap().entries.map((entry) {
+        children: labels.asMap().entries.map((entry) {
           final index = entry.key;
-          final number = entry.value;
+          final number = entry.value.$1;
+          final i = entry.value.$2;
           return Row(
             children: <Widget>[
-              CustomButton(number, size),
-              if (index != numbers.length - 1) SizedBox(width: spacing), // Add spacing between buttons
+              CustomButton(number, size, false, onPressed: (){onPressed(i);}),
+              if (index != labels.length - 1) SizedBox(width: spacing), // Add spacing between buttons
             ],
           );
         }).toList(),
