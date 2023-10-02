@@ -207,7 +207,8 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void reset() {
     setState(() {
       var rng = Random();
-      List<int> game = games[rng.nextInt(games.length)].toList()..shuffle(rng);
+      int index = rng.nextInt(_settings.maxDifficulty.floor()-_settings.minDifficulty.floor()) + _settings.minDifficulty.floor();
+      List<int> game = games[index].toList()..shuffle(rng);
       for(int i = 0; i < 4; ++i){
         numbers[i] = (game[i], 1);
       }
@@ -245,6 +246,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
   @override
   void initState(){
     super.initState();
+    _settings = readSettings(widget.appSettings);
     reset();
   }
 

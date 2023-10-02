@@ -24,6 +24,14 @@ class AppSettings {
   }
 }
 
+Settings readSettings(AppSettings appSettings){
+  Settings ret = Settings();
+  ret.minDifficulty = appSettings.getIntSetting('minDifficulty', 0).toDouble();
+  ret.maxDifficulty = appSettings.getIntSetting('maxDifficulty', games.length).toDouble();
+  ret.timerEnabled = appSettings.getBoolSetting('timerEnabled', true);
+  return ret;
+}
+
 class SettingsPage extends StatefulWidget {
   final AppSettings appSettings;
   final ValueChanged<Settings> onSettingsChanged;
@@ -45,10 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _settings = widget.initialSettings;
-    _settings.minDifficulty = widget.appSettings.getIntSetting('minDifficulty', 0).toDouble();
-    _settings.maxDifficulty = widget.appSettings.getIntSetting('maxDifficulty', games.length).toDouble();
-    _settings.timerEnabled = widget.appSettings.getBoolSetting('timerEnabled', true);
+    _settings = readSettings(widget.appSettings);
   }
 
   void _saveSettings() {
@@ -128,8 +133,8 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class Settings {
-  double minDifficulty = 0.5;
-  double maxDifficulty = 0.5;
+  double minDifficulty = 0;
+  double maxDifficulty = games.length.toDouble();
   bool timerEnabled = true;
   // Settings(this.minDifficulty, this.maxDifficulty, this.timerEnabled);
 }
