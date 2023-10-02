@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
+import 'dart:async';
 import 'games.dart';
 import 'settings.dart';
 
@@ -93,13 +94,27 @@ class _ButtonSquareState extends State<ButtonSquare> {
   List<(List<(int, int)>, int)> history = [];
   int history_point = 0;
   int num_select = -1;
+
+  late Timer timer;
+  int timer_seconds = 0;
+  int num_solves = 0;
+  
   Operation opSelect = Operation.None;
   Settings _settings = Settings();
 
   void checkFinished(){
     if(numbers.where((n) => n.$2 == 0).length == numbers.length - 1 && numbers.contains((24, 1))){
-      reset();
+      newGame();
+      ++num_solves;
     }
+  }
+
+  void addHistory(){
+    if(history_point < history.length-1){
+      history.removeRange(history_point + 1, history.length);
+    }
+    history.add((List<(int,int)>.from(numbers), num_select));
+    history_point += 1;
   }
 
   void numberPress(int newSelect) {
@@ -141,12 +156,8 @@ class _ButtonSquareState extends State<ButtonSquare> {
       opSelect = Operation.None;
       num_select = newSelect;
 
-      if(history_point < history.length-1){
-        history.removeRange(history_point + 1, history.length);
-      }
-      history.add((List<(int,int)>.from(numbers), num_select));
-      history_point += 1;
-      // print(history);
+      addHistory();
+
       checkFinished();
 
     });
@@ -155,7 +166,9 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void opPress(Operation operation) {
     setState(() {
       if (operation == Operation.Reset) {
-        reset();
+        newGame();
+        timer_seconds = 0;
+        num_solves = 0;
       } else if(operation == opSelect){
         opSelect = Operation.None;
         return;
@@ -195,28 +208,27 @@ class _ButtonSquareState extends State<ButtonSquare> {
         } else {
           numbers[0] = result;
         }
+        addHistory();
       } else {
         opSelect = operation;
       }
+      checkFinished();
     });
 
-    checkFinished();
 
   }
 
-  void reset() {
-    setState(() {
-      var rng = Random();
-      int index = rng.nextInt(_settings.maxDifficulty.floor()-_settings.minDifficulty.floor()) + _settings.minDifficulty.floor();
-      List<int> game = games[index].toList()..shuffle(rng);
-      for(int i = 0; i < 4; ++i){
-        numbers[i] = (game[i], 1);
-      }
-      opSelect = Operation.None;
-      num_select = -1;
-      history = [(List<(int,int)>.from(numbers), -1)];
-      history_point = 0;
-    });
+  void newGame() {
+    var rng = Random();
+    int index = rng.nextInt(_settings.maxDifficulty.floor()-_settings.minDifficulty.floor()) + _settings.minDifficulty.floor();
+    List<int> game = games[index].toList()..shuffle(rng);
+    for(int i = 0; i < 4; ++i){
+      numbers[i] = (game[i], 1);
+    }
+    opSelect = Operation.None;
+    num_select = -1;
+    history = [(List<(int,int)>.from(numbers), -1)];
+    history_point = 0;
   }
 
   void _openSettingsDialog(BuildContext context) async {
@@ -247,7 +259,18 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void initState(){
     super.initState();
     _settings = readSettings(widget.appSettings);
-    reset();
+    timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      setState(() {
+        ++timer_seconds;
+      });
+    });
+    newGame();
+  }
+
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
   }
 
   @override
@@ -290,31 +313,61 @@ class _ButtonSquareState extends State<ButtonSquare> {
           ),
         ],
       ),
-      body: Center(
+      body: Align(
+        alignment: Alignment.topCenter,
         child: 
          Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          // mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            SizedBox(height: 24.0),
+            Row(
+              children:[
+                const SizedBox(width: 24.0),
+                Text(
+                  _settings.timerEnabled ? '$timer_seconds' : '',
+                  style: const TextStyle(fontSize:36),
+                ),
+                const Spacer(),
+                Text(
+                  '$num_solves',
+                  style: const TextStyle(fontSize:36),
+                ),
+                const SizedBox(width: 24.0),
+              ]
+            ),
+            const SizedBox(height: 16.0),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 buildButtonRow([(strFrac(numbers[0]), 0), (strFrac(numbers[1]), 1)], buttonSize),
-                SizedBox(height: 16.0), // Add horizontal spacing between buttons
+                const SizedBox(height: 16.0), // Add horizontal spacing between buttons
                 buildButtonRow([(strFrac(numbers[2]), 2), (strFrac(numbers[3]), 3)], buttonSize),
-                SizedBox(height: 16.0), // Add horizontal spacing between buttons
+                const SizedBox(height: 16.0), // Add horizontal spacing between buttons
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                ButtonGroup([('+', Operation.Addition), ('-', Operation.Subtraction), ('×', Operation.Multiplication), ('÷', Operation.Division)], screenSize.width / 4-16, 8, opPress, opSelect),
+                ButtonGroup(
+                  const [('+', Operation.Addition), ('-', Operation.Subtraction), ('×', Operation.Multiplication), ('÷', Operation.Division)],
+                  screenSize.width / 4-16,
+                  8,
+                  opPress,
+                  opSelect
+                ),
               ],
             ),
-            SizedBox(height: 16.0), // Add vertical margin
+            const SizedBox(height: 16.0), // Add vertical margin
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                ButtonGroup([('«', Operation.Undo), ('++', Operation.Sum), ('××', Operation.Product), ('»', Operation.Redo)], screenSize.width / 4-16, 8, opPress, Operation.None),
+                ButtonGroup(
+                  const [('«', Operation.Undo), ('++', Operation.Sum), ('××', Operation.Product), ('»', Operation.Redo)],
+                  screenSize.width / 4-16,
+                  8,
+                  opPress,
+                  Operation.None
+                ),
               ],
             ),
           ],
@@ -322,7 +375,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
       ),
       floatingActionButton:
         FloatingActionButton(
-          onPressed: reset,
+          onPressed: (){opPress(Operation.Reset);},
           tooltip: 'Increment',
           child: const Icon(Icons.restart_alt),
         ), // This trailing comma makes auto-formatting nicer for build methods.
