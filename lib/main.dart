@@ -11,6 +11,8 @@ enum Operation {
   Reset,
   Sum,
   Product,
+  Undo,
+  Redo,
 }
 
 void main() {
@@ -98,45 +100,73 @@ class ButtonSquare extends StatefulWidget {
 class _ButtonSquareState extends State<ButtonSquare> {
   bool isButtonVisible = true; // Initially, buttons are visible
   List<(int,int)> numbers = [(1,1), (2,1), (3,1), (4,1)];
-  List<int> game = [1, 2, 3, 4];
+  List<(List<(int, int)>, int)> history = [];
+  int history_point = 0;
   int num_select = -1;
   Operation opSelect = Operation.None;
 
-void numberPress(int newSelect) {
-  if (numbers[newSelect].$2 == 0) {
-    return;
-  }
-  if (num_select == -1 || opSelect == Operation.None) {
+  void numberPress(int newSelect) {
+    if (numbers[newSelect].$2 == 0) {
+      return;
+    }
+    if (num_select == -1 || opSelect == Operation.None) {
+      setState(() {
+        num_select = newSelect;
+        history[history_point] = (history[history_point].$1, num_select);
+      });
+      return;
+    }
     setState(() {
+      (int, int) newNum = numbers[newSelect];
+      (int, int) oldNum = numbers[num_select];
+      if(newNum.$1 == 0 && opSelect == Operation.Division){
+        return;
+      }
+
+      var opMap = {
+        Operation.Addition: addFrac,
+        Operation.Subtraction: subFrac,
+        Operation.Multiplication: mulFrac,
+        Operation.Division: divFrac,
+      };
+
+      history[history_point] = (history[history_point].$1, num_select);
+      
+      numbers[newSelect] = opMap[opSelect]!(oldNum, newNum);
+      numbers[num_select] = (0,0);
+      opSelect = Operation.None;
       num_select = newSelect;
+
+      if(history_point < history.length-1){
+        history.removeRange(history_point + 1, history.length);
+      }
+      history.add((List<(int,int)>.from(numbers), num_select));
+      history_point += 1;
+
     });
-    return;
   }
-  setState(() {
-    (int, int) newNum = numbers[newSelect];
-    (int, int) oldNum = numbers[num_select];
 
-    var opMap = {
-      Operation.Addition: addFrac,
-      Operation.Subtraction: subFrac,
-      Operation.Multiplication: mulFrac,
-      Operation.Division: divFrac,
-    };
-    
-    numbers[newSelect] = opMap[opSelect]!(oldNum, newNum);
-
-    numbers[num_select] = (0,0);
-    opSelect = Operation.None;
-    num_select = newSelect;
-
-  });
-}
-
-void opPress(Operation operation) {
+  void opPress(Operation operation) {
     setState(() {
       if (operation == Operation.Reset) {
         reset();
-      } else if (operation == Operation.Sum || operation == Operation.Product) {
+      } else if(operation == Operation.Undo) {
+        if(history_point <= 0){
+          return;
+        }
+        --history_point;
+        numbers = List<(int,int)>.from(history[history_point].$1);
+        num_select = history[history_point].$2;
+        opSelect = Operation.None;
+      } else if(operation == Operation.Redo){
+        if(history_point >= history.length - 1){
+          return;
+        }
+        ++history_point;
+        numbers = List<(int,int)>.from(history[history_point].$1);
+        num_select = history[history_point].$2;
+        opSelect = Operation.None;
+      } else if(operation == Operation.Sum || operation == Operation.Product) {
         (int,int) result = operation == Operation.Sum ? (0,1) : (1,1);
         for (int i = 0; i < 4; ++i) {
           if (numbers[i].$2 == 0) {
@@ -174,7 +204,15 @@ void opPress(Operation operation) {
       }
       opSelect = Operation.None;
       num_select = -1;
+      history = [(List<(int,int)>.from(numbers), -1)];
+      history_point = 0;
     });
+  }
+
+  @override
+  void initState(){
+    super.initState();
+    reset();
   }
 
   @override
@@ -187,7 +225,9 @@ void opPress(Operation operation) {
     Row buildButtonRow(List<(String, int)> buttonLabels, double buttonSize) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: buttonLabels.map((label) {
+        children: buttonLabels.asMap().entries.map((entry) {
+          int index = entry.key;
+          var label = entry.value;
           return Row(
             children: [
               Opacity(
@@ -199,7 +239,7 @@ void opPress(Operation operation) {
                   onPressed: (){numberPress(label.$2);},
                 ),
               ),
-              SizedBox(width: 16.0), // Add horizontal spacing between buttons
+              SizedBox(width: index < buttonLabels.length - 1 ? 16.0 : 0), // Add horizontal spacing between buttons
             ],
           );
         }).toList(),
@@ -235,7 +275,7 @@ void opPress(Operation operation) {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                ButtonGroup([('++', Operation.Sum), ('××', Operation.Product)], screenSize.width / 4-16, 8, opPress, Operation.None),
+                ButtonGroup([('«', Operation.Undo), ('++', Operation.Sum), ('××', Operation.Product), ('»', Operation.Redo)], screenSize.width / 4-16, 8, opPress, Operation.None),
               ],
             ),
           ],
