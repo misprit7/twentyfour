@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'games.dart';
+
+const int invalid = -999;
+
+enum Operation {
+  None,
+  Addition,
+  Subtraction,
+  Multiplication,
+  Division,
+  Reset,
+  Sum,
+  Product,
+}
 
 void main() {
   runApp(const MyApp());
@@ -32,13 +46,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,55 +63,84 @@ class _ButtonSquareState extends State<ButtonSquare> {
   bool isButtonVisible = true; // Initially, buttons are visible
   List<int> numbers = [1, 2, 3, 4];
   int numSelect = -1;
-  int opSelect = -1;
+  Operation opSelect = Operation.None;
 
-  void numberPress(int i) {
-    if(numbers[i] == -999){ return; }
-    if(numSelect == -1 || opSelect == -1){
-      setState(() {
-        numSelect = i;
-      });
-      return;
-    }
-    setState(() {
-      if(opSelect == 0){
-        numbers[i] = numbers[numSelect] + numbers[i];
-      } else if(opSelect == 1){
-        numbers[i] = numbers[numSelect] - numbers[i];
-      } else if(opSelect == 2){
-        numbers[i] = numbers[numSelect] * numbers[i];
-      } else if(opSelect == 3){
-        numbers[i] = (numbers[numSelect] / numbers[i]).floor();
-      }
-      numbers[numSelect] = -999;
-      opSelect = -1;
-      numSelect = i;
-    });
+void numberPress(int num_select) {
+  if (numbers[num_select] == invalid) {
+    return;
   }
-
-  void opPress(int i) {
-    if(0 <= i && i <= 3){
-      setState((){ opSelect = i; });
-      return;
+  if (numSelect == -1 || opSelect == Operation.None) {
+    setState(() {
+      numSelect = num_select;
+    });
+    return;
+  }
+  setState(() {
+    switch (opSelect) {
+      case Operation.Addition:
+        numbers[num_select] = numbers[numSelect] + numbers[num_select];
+        break;
+      case Operation.Subtraction:
+        numbers[num_select] = numbers[numSelect] - numbers[num_select];
+        break;
+      case Operation.Multiplication:
+        numbers[num_select] = numbers[numSelect] * numbers[num_select];
+        break;
+      case Operation.Division:
+        numbers[num_select] = (numbers[numSelect] / numbers[num_select]).floor();
+        break;
+      default:
+        break;
     }
-    setState((){
-      int reduced = numbers.reduce((a, b){ return i == 4 ? a+(b == -999 ? 0 : b) : a*(b == -999 ? 1 : b); });
-      for(int i = 0; i < 4; ++i){numbers[i] = -999;}
-      if(numSelect != -1){
-        numbers[numSelect] = reduced;
+    numbers[numSelect] = invalid;
+    opSelect = Operation.None;
+    numSelect = num_select;
+
+  });
+}
+
+void opPress(Operation operation) {
+    setState(() {
+      if (operation == Operation.Reset) {
+        reset();
+      } else if (operation == Operation.Sum || operation == Operation.Product) {
+        int result = operation == Operation.Sum ? 0 : 1;
+        for (int i = 0; i < 4; ++i) {
+          if (numbers[i] == invalid) {
+            continue;
+          }
+          if (operation == Operation.Sum) {
+            result += numbers[i];
+          } else {
+            result *= numbers[i];
+          }
+          numbers[i] = invalid;
+        }
+        if (numSelect != -1) {
+          numbers[numSelect] = result;
+        } else {
+          numbers[0] = result;
+        }
       } else {
-        numbers[0] = reduced;
+        opSelect = operation;
       }
     });
+
+    if(numbers.where((n) => n == invalid).length == numbers.length - 1 && numbers.contains(24)){
+      reset();
+    }
+
   }
 
   void reset() {
     setState(() {
       var rng = Random();
+      List<int> puzzle = games[rng.nextInt(games.length)].toList()..shuffle(rng);
       for(int i = 0; i < 4; ++i){
-        // non-inclusive and avoid 0
-        numbers[i] = rng.nextInt(13)+1;
+        numbers[i] = puzzle[i];
       }
+      opSelect = Operation.None;
+      numSelect = -1;
     });
   }
 
@@ -122,7 +158,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
           return Row(
             children: [
               Opacity(
-                opacity: numbers[label.$2] == -999 ? 0.0 : 1.0,
+                opacity: numbers[label.$2] == invalid ? 0.0 : 1.0,
                 child: CustomButton(
                   label.$1,
                   buttonSize,
@@ -159,14 +195,14 @@ class _ButtonSquareState extends State<ButtonSquare> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                ButtonGroup([('+', 0), ('-', 1), ('×', 2), ('÷', 3)], screenSize.width / 4-16, 8, opPress, opSelect),
+                ButtonGroup([('+', Operation.Addition), ('-', Operation.Subtraction), ('×', Operation.Multiplication), ('÷', Operation.Division)], screenSize.width / 4-16, 8, opPress, opSelect),
               ],
             ),
             SizedBox(height: 16.0), // Add vertical margin
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                ButtonGroup([('++', 4), ('××', 5)], screenSize.width / 4-16, 8, opPress, -1),
+                ButtonGroup([('++', Operation.Sum), ('××', Operation.Product)], screenSize.width / 4-16, 8, opPress, Operation.None),
               ],
             ),
           ],
@@ -232,28 +268,34 @@ class _CustomButtonState extends State<CustomButton> {
 }
 
 class ButtonGroup extends StatelessWidget {
-  final List<(String, int)> labels;
+  final List<(String, Operation)> labels;
   final double size;
   final double spacing; // Define spacing between buttons
-  final void Function(int) onPressed;
-  final int active;
+  final void Function(Operation) onPressed;
+  final Operation active;
 
   ButtonGroup(this.labels, this.size, this.spacing, this.onPressed, this.active);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size * labels.length.toDouble() + spacing * (labels.length - 1), // Calculate total width
-      height: size, // Set a fixed height
+      width: size * labels.length.toDouble() + spacing * (labels.length - 1),
+      height: size,
       child: Row(
         children: labels.asMap().entries.map((entry) {
           final index = entry.key;
-          final number = entry.value.$1;
-          final i = entry.value.$2;
+          final operation = entry.value.$2;
           return Row(
             children: <Widget>[
-              CustomButton(number, size, active == i, onPressed: (){onPressed(i);}),
-              if (index != labels.length - 1) SizedBox(width: spacing), // Add spacing between buttons
+              CustomButton(
+                entry.value.$1,
+                size,
+                active == operation,
+                onPressed: () {
+                  onPressed(operation);
+                },
+              ),
+              if (index != labels.length - 1) SizedBox(width: spacing),
             ],
           );
         }).toList(),
