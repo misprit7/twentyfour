@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'games.dart';
 
-const int invalid = -999;
-
 enum Operation {
   None,
   Addition,
@@ -18,6 +16,44 @@ enum Operation {
 void main() {
   runApp(const MyApp());
 }
+
+(int,int) reduceFrac((int,int) r){
+    int g = r.$2.gcd(r.$1);
+    return (
+      r.$1 ~/ g,
+      r.$2 ~/ g,
+    );
+}
+
+(int,int) addFrac((int,int) a, (int,int) b){
+  return reduceFrac((
+    a.$1*b.$2+b.$1*a.$2,
+    a.$2*b.$2
+  ));
+}
+
+(int,int) subFrac((int,int) a, (int,int) b){
+  return addFrac(a, (-b.$1, b.$2));
+}
+
+(int,int) mulFrac((int,int) a, (int,int) b){
+  return reduceFrac((
+      a.$1 * b.$1,
+      a.$2 * b.$2
+  ));
+}
+
+(int,int) divFrac((int,int) a, (int,int) b){
+  return mulFrac(a, (b.$2, b.$1));
+}
+
+String strFrac((int, int) r){
+  if(r.$2 == 1){
+    return r.$1.toString();
+  }
+  return '${r.$1.toString()}/${r.$2.toString()}';
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -61,40 +97,37 @@ class ButtonSquare extends StatefulWidget {
 
 class _ButtonSquareState extends State<ButtonSquare> {
   bool isButtonVisible = true; // Initially, buttons are visible
-  List<int> numbers = [1, 2, 3, 4];
-  int numSelect = -1;
+  List<(int,int)> numbers = [(1,1), (2,1), (3,1), (4,1)];
+  List<int> game = [1, 2, 3, 4];
+  int num_select = -1;
   Operation opSelect = Operation.None;
 
-void numberPress(int num_select) {
-  if (numbers[num_select] == invalid) {
+void numberPress(int newSelect) {
+  if (numbers[newSelect].$2 == 0) {
     return;
   }
-  if (numSelect == -1 || opSelect == Operation.None) {
+  if (num_select == -1 || opSelect == Operation.None) {
     setState(() {
-      numSelect = num_select;
+      num_select = newSelect;
     });
     return;
   }
   setState(() {
-    switch (opSelect) {
-      case Operation.Addition:
-        numbers[num_select] = numbers[numSelect] + numbers[num_select];
-        break;
-      case Operation.Subtraction:
-        numbers[num_select] = numbers[numSelect] - numbers[num_select];
-        break;
-      case Operation.Multiplication:
-        numbers[num_select] = numbers[numSelect] * numbers[num_select];
-        break;
-      case Operation.Division:
-        numbers[num_select] = (numbers[numSelect] / numbers[num_select]).floor();
-        break;
-      default:
-        break;
-    }
-    numbers[numSelect] = invalid;
+    (int, int) newNum = numbers[newSelect];
+    (int, int) oldNum = numbers[num_select];
+
+    var opMap = {
+      Operation.Addition: addFrac,
+      Operation.Subtraction: subFrac,
+      Operation.Multiplication: mulFrac,
+      Operation.Division: divFrac,
+    };
+    
+    numbers[newSelect] = opMap[opSelect]!(oldNum, newNum);
+
+    numbers[num_select] = (0,0);
     opSelect = Operation.None;
-    numSelect = num_select;
+    num_select = newSelect;
 
   });
 }
@@ -104,20 +137,20 @@ void opPress(Operation operation) {
       if (operation == Operation.Reset) {
         reset();
       } else if (operation == Operation.Sum || operation == Operation.Product) {
-        int result = operation == Operation.Sum ? 0 : 1;
+        (int,int) result = operation == Operation.Sum ? (0,1) : (1,1);
         for (int i = 0; i < 4; ++i) {
-          if (numbers[i] == invalid) {
+          if (numbers[i].$2 == 0) {
             continue;
           }
           if (operation == Operation.Sum) {
-            result += numbers[i];
+            result = addFrac(result, numbers[i]);
           } else {
-            result *= numbers[i];
+            result = mulFrac(result, numbers[i]);
           }
-          numbers[i] = invalid;
+          numbers[i] = (0,0);
         }
-        if (numSelect != -1) {
-          numbers[numSelect] = result;
+        if (num_select != -1) {
+          numbers[num_select] = result;
         } else {
           numbers[0] = result;
         }
@@ -126,7 +159,7 @@ void opPress(Operation operation) {
       }
     });
 
-    if(numbers.where((n) => n == invalid).length == numbers.length - 1 && numbers.contains(24)){
+    if(numbers.where((n) => n.$2 == 0).length == numbers.length - 1 && numbers.contains((24, 1))){
       reset();
     }
 
@@ -135,12 +168,12 @@ void opPress(Operation operation) {
   void reset() {
     setState(() {
       var rng = Random();
-      List<int> puzzle = games[rng.nextInt(games.length)].toList()..shuffle(rng);
+      List<int> game = games[rng.nextInt(games.length)].toList()..shuffle(rng);
       for(int i = 0; i < 4; ++i){
-        numbers[i] = puzzle[i];
+        numbers[i] = (game[i], 1);
       }
       opSelect = Operation.None;
-      numSelect = -1;
+      num_select = -1;
     });
   }
 
@@ -158,11 +191,11 @@ void opPress(Operation operation) {
           return Row(
             children: [
               Opacity(
-                opacity: numbers[label.$2] == invalid ? 0.0 : 1.0,
+                opacity: numbers[label.$2].$2 == 0 ? 0.0 : 1.0,
                 child: CustomButton(
                   label.$1,
                   buttonSize,
-                  numSelect == label.$2,
+                  num_select == label.$2,
                   onPressed: (){numberPress(label.$2);},
                 ),
               ),
@@ -186,9 +219,9 @@ void opPress(Operation operation) {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                buildButtonRow([(numbers[0].toString(), 0), (numbers[1].toString(), 1)], buttonSize),
+                buildButtonRow([(strFrac(numbers[0]), 0), (strFrac(numbers[1]), 1)], buttonSize),
                 SizedBox(height: 16.0), // Add horizontal spacing between buttons
-                buildButtonRow([(numbers[2].toString(), 2), (numbers[3].toString(), 3)], buttonSize),
+                buildButtonRow([(strFrac(numbers[2]), 2), (strFrac(numbers[3]), 3)], buttonSize),
                 SizedBox(height: 16.0), // Add horizontal spacing between buttons
               ],
             ),
