@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 import 'games.dart';
+import 'settings.dart';
 
 enum Operation {
   None,
@@ -15,8 +17,10 @@ enum Operation {
   Redo,
 }
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(MyApp(appSettings: AppSettings(prefs)));
 }
 
 (int,int) reduceFrac((int,int) r){
@@ -58,7 +62,8 @@ String strFrac((int, int) r){
 
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppSettings appSettings;
+  const MyApp({Key? key, required this.appSettings}) : super(key : key);
 
   // This widget is the root of your application.
   @override
@@ -69,30 +74,15 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Twenty Four Game'),
+      home: ButtonSquare(appSettings: appSettings),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-
-  @override
-  Widget build(BuildContext context) {
-    // than having to individually change instances of widgets.
-    return ButtonSquare();
-  }
-}
 
 class ButtonSquare extends StatefulWidget {
+  final AppSettings appSettings;
+  const ButtonSquare({required this.appSettings});
   @override
   _ButtonSquareState createState() => _ButtonSquareState();
 }
@@ -104,9 +94,23 @@ class _ButtonSquareState extends State<ButtonSquare> {
   int history_point = 0;
   int num_select = -1;
   Operation opSelect = Operation.None;
+  Settings _settings = Settings();
+
+  void checkFinished(){
+    if(numbers.where((n) => n.$2 == 0).length == numbers.length - 1 && numbers.contains((24, 1))){
+      reset();
+    }
+  }
 
   void numberPress(int newSelect) {
     if (numbers[newSelect].$2 == 0) {
+      return;
+    }
+    if(num_select == newSelect){
+      setState(() {
+        num_select = -1;
+        history[history_point] = (history[history_point].$1, num_select);
+      });
       return;
     }
     if (num_select == -1 || opSelect == Operation.None) {
@@ -142,6 +146,8 @@ class _ButtonSquareState extends State<ButtonSquare> {
       }
       history.add((List<(int,int)>.from(numbers), num_select));
       history_point += 1;
+      // print(history);
+      checkFinished();
 
     });
   }
@@ -150,7 +156,11 @@ class _ButtonSquareState extends State<ButtonSquare> {
     setState(() {
       if (operation == Operation.Reset) {
         reset();
+      } else if(operation == opSelect){
+        opSelect = Operation.None;
+        return;
       } else if(operation == Operation.Undo) {
+        // print(history);
         if(history_point <= 0){
           return;
         }
@@ -159,6 +169,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
         num_select = history[history_point].$2;
         opSelect = Operation.None;
       } else if(operation == Operation.Redo){
+        // print(history);
         if(history_point >= history.length - 1){
           return;
         }
@@ -189,9 +200,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
       }
     });
 
-    if(numbers.where((n) => n.$2 == 0).length == numbers.length - 1 && numbers.contains((24, 1))){
-      reset();
-    }
+    checkFinished();
 
   }
 
@@ -206,6 +215,30 @@ class _ButtonSquareState extends State<ButtonSquare> {
       num_select = -1;
       history = [(List<(int,int)>.from(numbers), -1)];
       history_point = 0;
+    });
+  }
+
+  void _openSettingsDialog(BuildContext context) async {
+    final newSettings = await showDialog<Settings>(
+      context: context,
+      builder: (BuildContext context) {
+        return SettingsPage(
+          appSettings: widget.appSettings,
+          onSettingsChanged: _updateSettings,
+          initialSettings: _settings, // Pass the current settings
+        );
+      },
+    );
+
+    if (newSettings != null) {
+      // Update the settings if the dialog was closed with new settings
+      _updateSettings(newSettings);
+    }
+  }
+
+  void _updateSettings(Settings newSettings) {
+    setState(() {
+      _settings = newSettings; // Update the settings
     });
   }
 
@@ -248,8 +281,12 @@ class _ButtonSquareState extends State<ButtonSquare> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings), // Replace with your desired icon
+            onPressed: () {_openSettingsDialog(context);}
+          ),
+        ],
       ),
       body: Center(
         child: 
