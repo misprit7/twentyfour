@@ -28,9 +28,65 @@ Settings readSettings(AppSettings appSettings){
   Settings ret = Settings();
   ret.minDifficulty = appSettings.getIntSetting('minDifficulty', 0).toDouble();
   ret.maxDifficulty = appSettings.getIntSetting('maxDifficulty', games.length).toDouble();
+  ret.themeColor = Color(appSettings.getIntSetting('themeColor', Colors.deepOrange.value));
   ret.timerEnabled = appSettings.getBoolSetting('timerEnabled', true);
   ret.darkMode = appSettings.getBoolSetting('darkMode', false);
   return ret;
+}
+
+class ColorSelector extends StatefulWidget {
+  final Function onSelect;
+  final Color initSelected;
+
+
+  const ColorSelector({required this.onSelect, required this.initSelected});
+
+  @override
+  _ColorSelectorState createState() => _ColorSelectorState();
+}
+
+class _ColorSelectorState extends State<ColorSelector> {
+  final List<Color> colors = [Colors.deepOrange, Colors.cyan, Colors.purple, Colors.lime];
+  Color selected = Colors.deepOrange;
+
+  @override
+  void initState(){
+    super.initState();
+    selected = widget.initSelected;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    int selectedIndex = colors.map((c)=>c.value).toList().indexOf(selected.value);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: colors.asMap().entries.map((entry) {
+        int idx = entry.key;
+        Color color = entry.value;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              selected = color;
+              widget.onSelect(color);
+            });
+          },
+          child: Container(
+            margin: EdgeInsets.all(8.0),
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              border: Border.all(
+                color: selectedIndex == idx ? Colors.black : Colors.transparent,
+                width: 3.0,
+              ),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
 
 class SettingsPage extends StatefulWidget {
@@ -61,6 +117,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // Save the current value to settings
     widget.appSettings.setIntSetting('minDifficulty', _settings.minDifficulty.round());
     widget.appSettings.setIntSetting('maxDifficulty', _settings.maxDifficulty.round());
+    widget.appSettings.setIntSetting('themeColor', _settings.themeColor.value);
     widget.appSettings.setBoolSetting('timerEnabled', _settings.timerEnabled);
     widget.appSettings.setBoolSetting('darkMode', _settings.darkMode);
     // Navigator.pop(context); // Close the settings page
@@ -125,6 +182,13 @@ class _SettingsPageState extends State<SettingsPage> {
               Text('Dark mode'),
             ],
           ),
+          ColorSelector(onSelect: (Color color){
+              setState((){
+                _settings.themeColor = color;
+              });
+            },
+            initSelected: _settings.themeColor,
+          ),
         ],
       ),
       actions: [
@@ -152,4 +216,5 @@ class Settings {
   double maxDifficulty = games.length.toDouble();
   bool timerEnabled = true;
   bool darkMode = false;
+  Color themeColor = Colors.deepOrange;
 }

@@ -76,15 +76,14 @@ class _MyAppState extends State<MyApp> {
   );
 
 
-  void _changeTheme(bool darkMode) {
+  void _changeTheme(bool darkMode, Color themeColor) {
     Brightness mode = darkMode ? Brightness.dark : Brightness.light;
     setState(() {
       _currentTheme = ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange, brightness: mode),
+        colorScheme: ColorScheme.fromSeed(seedColor: themeColor, brightness: mode),
         brightness: mode,
         useMaterial3: true,
       );
-;
     });
   }
 
@@ -92,7 +91,7 @@ class _MyAppState extends State<MyApp> {
   void initState(){
     super.initState();
     Settings s = readSettings(widget.appSettings);
-    _changeTheme(s.darkMode);
+    _changeTheme(s.darkMode, s.themeColor);
   }
 
   @override
@@ -199,7 +198,6 @@ class _ButtonSquareState extends State<ButtonSquare> {
         opSelect = Operation.None;
         return;
       } else if(operation == Operation.Undo) {
-        // print(history);
         if(history_point <= 0){
           return;
         }
@@ -208,7 +206,6 @@ class _ButtonSquareState extends State<ButtonSquare> {
         num_select = history[history_point].$2;
         opSelect = Operation.None;
       } else if(operation == Operation.Redo){
-        // print(history);
         if(history_point >= history.length - 1){
           return;
         }
@@ -217,6 +214,9 @@ class _ButtonSquareState extends State<ButtonSquare> {
         num_select = history[history_point].$2;
         opSelect = Operation.None;
       } else if(operation == Operation.Sum || operation == Operation.Product) {
+        if(numbers.where((n) => n.$2 == 0).length == numbers.length - 1){
+          return;
+        }
         (int,int) result = operation == Operation.Sum ? (0,1) : (1,1);
         for (int i = 0; i < 4; ++i) {
           if (numbers[i].$2 == 0) {
@@ -278,7 +278,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void _updateSettings(Settings newSettings) {
     setState(() {
       _settings = newSettings; // Update the settings
-      widget.changeTheme(_settings.darkMode);
+      widget.changeTheme(_settings.darkMode, _settings.themeColor);
     });
   }
 
@@ -286,7 +286,6 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void initState(){
     super.initState();
     _settings = readSettings(widget.appSettings);
-    // widget.changeTheme(_settings.darkMode);
     timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       setState(() {
         ++timer_seconds;
@@ -351,11 +350,15 @@ class _ButtonSquareState extends State<ButtonSquare> {
             Row(
               children:[
                 const SizedBox(width: 24.0),
+                const Icon(Icons.timer),
+                const SizedBox(width: 8.0),
                 Text(
                   _settings.timerEnabled ? '$timer_seconds' : '',
                   style: const TextStyle(fontSize:36),
                 ),
                 const Spacer(),
+                const Icon(Icons.emoji_events),
+                const SizedBox(width: 8.0),
                 Text(
                   '$num_solves',
                   style: const TextStyle(fontSize:36),
