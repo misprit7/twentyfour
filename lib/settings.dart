@@ -29,6 +29,7 @@ Settings readSettings(AppSettings appSettings){
   ret.minDifficulty = appSettings.getIntSetting('minDifficulty', 0).toDouble();
   ret.maxDifficulty = appSettings.getIntSetting('maxDifficulty', games.length).toDouble();
   ret.timerEnabled = appSettings.getBoolSetting('timerEnabled', true);
+  ret.darkMode = appSettings.getBoolSetting('darkMode', false);
   return ret;
 }
 
@@ -61,6 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
     widget.appSettings.setIntSetting('minDifficulty', _settings.minDifficulty.round());
     widget.appSettings.setIntSetting('maxDifficulty', _settings.maxDifficulty.round());
     widget.appSettings.setBoolSetting('timerEnabled', _settings.timerEnabled);
+    widget.appSettings.setBoolSetting('darkMode', _settings.darkMode);
     // Navigator.pop(context); // Close the settings page
   }
 
@@ -110,6 +112,19 @@ class _SettingsPageState extends State<SettingsPage> {
               Text('Enable timer'),
             ],
           ),
+          Row(
+            children: [
+              Checkbox(
+                value: _settings.darkMode,
+                onChanged: (value) {
+                  setState(() {
+                    _settings.darkMode = value ?? false;
+                  });
+                },
+              ),
+              Text('Dark mode'),
+            ],
+          ),
         ],
       ),
       actions: [
@@ -136,5 +151,5 @@ class Settings {
   double minDifficulty = 0;
   double maxDifficulty = games.length.toDouble();
   bool timerEnabled = true;
-  // Settings(this.minDifficulty, this.maxDifficulty, this.timerEnabled);
+  bool darkMode = false;
 }

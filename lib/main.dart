@@ -62,20 +62,38 @@ String strFrac((int, int) r){
 }
 
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final AppSettings appSettings;
   const MyApp({Key? key, required this.appSettings}) : super(key : key);
+  @override
+  _MyAppState createState() => _MyAppState();
+}
 
-  // This widget is the root of your application.
+class _MyAppState extends State<MyApp> {
+  ThemeData _currentTheme = ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+    useMaterial3: true,
+  );
+
+
+  void _changeTheme(bool darkMode) {
+    Brightness mode = darkMode ? Brightness.dark : Brightness.light;
+    setState(() {
+      _currentTheme = ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange, brightness: mode),
+        brightness: mode,
+        useMaterial3: true,
+      );
+;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'twentyfour',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: ButtonSquare(appSettings: appSettings),
+      theme: _currentTheme,
+      home: ButtonSquare(appSettings: widget.appSettings, changeTheme: _changeTheme),
     );
   }
 }
@@ -83,7 +101,8 @@ class MyApp extends StatelessWidget {
 
 class ButtonSquare extends StatefulWidget {
   final AppSettings appSettings;
-  const ButtonSquare({required this.appSettings});
+  final Function changeTheme;
+  const ButtonSquare({required this.appSettings, required this.changeTheme});
   @override
   _ButtonSquareState createState() => _ButtonSquareState();
 }
@@ -252,6 +271,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void _updateSettings(Settings newSettings) {
     setState(() {
       _settings = newSettings; // Update the settings
+      widget.changeTheme(_settings.darkMode);
     });
   }
 
@@ -259,6 +279,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
   void initState(){
     super.initState();
     _settings = readSettings(widget.appSettings);
+    // widget.changeTheme(_settings.darkMode);
     timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       setState(() {
         ++timer_seconds;
