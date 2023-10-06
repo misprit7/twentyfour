@@ -89,6 +89,13 @@ class _MyAppState extends State<MyApp> {
   }
 
   @override
+  void initState(){
+    super.initState();
+    Settings s = readSettings(widget.appSettings);
+    _changeTheme(s.darkMode);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'twentyfour',
@@ -424,27 +431,39 @@ class CustomButton extends StatefulWidget {
 class _CustomButtonState extends State<CustomButton> {
   @override
   Widget build(BuildContext context) {
-    final primaryColor = widget.isActive ? Colors.blue : Theme.of(context).colorScheme.surfaceVariant;
-    final textColor = widget.isActive ? Colors.white : Colors.black;
 
     return Container(
       width: widget.size,
       height: widget.size,
-      child: ElevatedButton(
+      child: widget.isActive ? FilledButton(
         onPressed: widget.onPressed,
         style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.all(0),
+          padding: const EdgeInsets.all(0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(0),
           ),
-          primary: primaryColor,
         ),
         child: Center(
           child: Text(
             widget.label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24.0,
-              color: textColor,
+            ),
+          ),
+        ),
+      ) : FilledButton.tonal( 
+        onPressed: widget.onPressed,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.all(0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(0),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            widget.label,
+            style: const TextStyle(
+              fontSize: 24.0,
             ),
           ),
         ),
