@@ -275,6 +275,41 @@ class _ButtonSquareState extends State<ButtonSquare> {
     }
   }
 
+  void _openHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Settings'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("""
+Make the number 24 using +, -, ×, ÷ and all four numbers!
+
+For example, if your numbers were [1, 3, 6, 8], a solution would be (6-3)×8×1=24.
+
+Use « and » to undo and redo your last move respectively. ++ adds all remaining numbers, and similarly ×× multiplies everything left.
+
+All the puzzles given are guaranteed to be possible.
+
+The difficulty sliders in settings represent average solve times experimentaly measured at 4nums.com.
+              """)
+            ]
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Done'),
+            ),
+          ]
+        );
+      },
+    );
+  }
+
   void _updateSettings(Settings newSettings) {
     setState(() {
       _settings = newSettings; // Update the settings
@@ -335,6 +370,10 @@ class _ButtonSquareState extends State<ButtonSquare> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
+            icon: Icon(Icons.question_mark), // Replace with your desired icon
+            onPressed: () {_openHelpDialog(context);}
+          ),
+          IconButton(
             icon: Icon(Icons.settings), // Replace with your desired icon
             onPressed: () {_openSettingsDialog(context);}
           ),
@@ -346,16 +385,18 @@ class _ButtonSquareState extends State<ButtonSquare> {
          Column(
           // mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            SizedBox(height: 24.0),
+            const SizedBox(height: 24.0),
             Row(
               children:[
                 const SizedBox(width: 24.0),
-                const Icon(Icons.timer),
-                const SizedBox(width: 8.0),
-                Text(
-                  _settings.timerEnabled ? '$timer_seconds' : '',
-                  style: const TextStyle(fontSize:36),
-                ),
+                ...(_settings.timerEnabled ? [
+                  const Icon(Icons.timer),
+                  const SizedBox(width: 8.0),
+                  Text(
+                    _settings.timerEnabled ? '$timer_seconds' : '',
+                    style: const TextStyle(fontSize:36),
+                  ),
+                ] : []),
                 const Spacer(),
                 const Icon(Icons.emoji_events),
                 const SizedBox(width: 8.0),

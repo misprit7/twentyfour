@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'games.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const List<Color> themeColors = [Colors.deepOrange, Colors.cyan, Colors.purple, Colors.lime];
+
 class AppSettings {
   final SharedPreferences _prefs;
 
@@ -31,6 +33,11 @@ Settings readSettings(AppSettings appSettings){
   ret.themeColor = Color(appSettings.getIntSetting('themeColor', Colors.deepOrange.value));
   ret.timerEnabled = appSettings.getBoolSetting('timerEnabled', true);
   ret.darkMode = appSettings.getBoolSetting('darkMode', false);
+
+  if(!themeColors.map((c)=>c.value).toList().contains(ret.themeColor.value)){
+    ret.themeColor = themeColors[0];
+  }
+
   return ret;
 }
 
@@ -46,7 +53,6 @@ class ColorSelector extends StatefulWidget {
 }
 
 class _ColorSelectorState extends State<ColorSelector> {
-  final List<Color> colors = [Colors.deepOrange, Colors.cyan, Colors.purple, Colors.lime];
   Color selected = Colors.deepOrange;
 
   @override
@@ -57,10 +63,10 @@ class _ColorSelectorState extends State<ColorSelector> {
 
   @override
   Widget build(BuildContext context) {
-    int selectedIndex = colors.map((c)=>c.value).toList().indexOf(selected.value);
+    int selectedIndex = themeColors.map((c)=>c.value).toList().indexOf(selected.value);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: colors.asMap().entries.map((entry) {
+      children: themeColors.asMap().entries.map((entry) {
         int idx = entry.key;
         Color color = entry.value;
         return GestureDetector(
@@ -77,7 +83,7 @@ class _ColorSelectorState extends State<ColorSelector> {
             decoration: BoxDecoration(
               color: color,
               border: Border.all(
-                color: selectedIndex == idx ? Colors.black : Colors.transparent,
+                color: selectedIndex == idx ? Theme.of(context).colorScheme.outline : Colors.transparent,
                 width: 3.0,
               ),
               borderRadius: BorderRadius.circular(8.0),
