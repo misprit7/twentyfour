@@ -1,4 +1,4 @@
-package com.example.twentyfour
+package dev.fromscratch.two_dozen
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -97,7 +97,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'twentyfour',
+      title: 'Two Dozen',
       theme: _currentTheme,
       home: ButtonSquare(appSettings: widget.appSettings, changeTheme: _changeTheme),
     );
