@@ -293,7 +293,7 @@ Use « and » to undo and redo your last move respectively. ++ adds all remainin
 
 All the puzzles given are guaranteed to be possible.
 
-The difficulty sliders in settings represent average solve times experimentaly measured at 4nums.com.
+The difficulty sliders in settings represent average solve times of all 1362 possible puzzles experimentaly measured at www.4nums.com.
               """)
             ]
           ),
