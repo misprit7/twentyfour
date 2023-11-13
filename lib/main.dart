@@ -338,9 +338,9 @@ The difficulty sliders in settings represent average solve times experimentaly m
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final buttonSize = screenSize.width < screenSize.height
-        ? screenSize.width / 2-32
-        : screenSize.height / 2-32;
+    double minWidth = screenSize.width / 2-32;
+    double minHeight = (screenSize.height-128)/ 4;
+    final buttonSize = minWidth < minHeight ? minWidth : minHeight;
 
     Row buildButtonRow(List<(String, int)> buttonLabels, double buttonSize) {
       return Row(
@@ -422,7 +422,7 @@ The difficulty sliders in settings represent average solve times experimentaly m
               children: <Widget>[
                 ButtonGroup(
                   const [('+', Operation.Addition), ('-', Operation.Subtraction), ('×', Operation.Multiplication), ('÷', Operation.Division)],
-                  screenSize.width / 4-16,
+                  min(screenSize.width / 4-16, buttonSize*0.75),
                   8,
                   opPress,
                   opSelect
@@ -435,7 +435,7 @@ The difficulty sliders in settings represent average solve times experimentaly m
               children: <Widget>[
                 ButtonGroup(
                   const [('«', Operation.Undo), ('++', Operation.Sum), ('××', Operation.Product), ('»', Operation.Redo)],
-                  screenSize.width / 4-16,
+                  min(screenSize.width / 4-16, buttonSize*0.75),
                   8,
                   opPress,
                   Operation.None
