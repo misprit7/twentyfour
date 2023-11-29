@@ -280,7 +280,7 @@ class _ButtonSquareState extends State<ButtonSquare> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Settings'),
+          title: Text('Instructions'),
           content: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -289,7 +289,7 @@ Make the number 24 using +, -, ×, ÷ and all four numbers!
 
 For example, if your numbers were [1, 3, 6, 8], a solution would be (6-3)×8×1=24.
 
-Use « and » to undo and redo your last move respectively. ++ adds all remaining numbers, and similarly ×× multiplies everything left.
+Use « and » to undo and redo your last move. ++ adds all remaining numbers, and similarly ×× multiplies everything left.
 
 All the puzzles given are guaranteed to be possible.
 
@@ -385,7 +385,7 @@ The difficulty sliders in settings represent average solve times of all 1362 pos
          Column(
           // mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const SizedBox(height: 24.0),
+            const SizedBox(height: 16.0),
             Row(
               children:[
                 const SizedBox(width: 24.0),
@@ -407,7 +407,7 @@ The difficulty sliders in settings represent average solve times of all 1362 pos
                 const SizedBox(width: 24.0),
               ]
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 12.0),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
