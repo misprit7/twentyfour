@@ -100,6 +100,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Two Dozen',
       theme: _currentTheme,
       home: ButtonSquare(appSettings: widget.appSettings, changeTheme: _changeTheme),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
